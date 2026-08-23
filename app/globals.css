@@ -1,0 +1,213 @@
+/* app/globals.css */
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+:root {
+  --brand: #1a3d7c;
+  --brand-light: #2e5aa8;
+  --action: #ff7a00;
+  --success: #00a86b;
+  --danger: #e63946;
+  --bg-soft: #f8f9fa;
+  --ink: #1a1a2e;
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background-color: var(--bg-soft);
+  color: var(--ink);
+  font-family: 'Inter', sans-serif;
+}
+
+.font-display {
+  font-family: 'Sora', sans-serif;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes popIn {
+  0% { opacity: 0; transform: scale(0.92); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes brilhoBanner {
+  0% { transform: translateX(-120%) skewX(-15deg); }
+  100% { transform: translateX(220%) skewX(-15deg); }
+}
+
+@keyframes popNumero {
+  0% { transform: scale(0.7); opacity: 0; }
+  70% { transform: scale(1.08); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.page-transition {
+  animation: fadeIn 0.25s ease both;
+}
+
+.toast-item {
+  animation: popIn 0.25s var(--spring) both;
+}
+
+.card {
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  animation: fadeInUp 0.35s ease both;
+}
+
+.card:hover {
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+}
+
+.btn-primary {
+  background-color: var(--action);
+  color: white;
+  font-weight: 600;
+  border-radius: 999px;
+  box-shadow: 0 8px 20px rgba(255, 122, 0, 0.3);
+  transition: filter 0.15s ease, transform 0.12s var(--spring);
+}
+
+.btn-primary:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+
+.btn-primary:active {
+  transform: scale(0.94);
+}
+
+.btn-secondary {
+  background-color: white;
+  color: var(--brand);
+  border: 1.5px solid var(--brand);
+  font-weight: 600;
+  border-radius: 999px;
+  transition: background-color 0.15s ease, transform 0.12s var(--spring);
+}
+
+.btn-secondary:hover {
+  background-color: #eef2fb;
+}
+
+.btn-secondary:active {
+  transform: scale(0.96);
+}
+
+.badge-economia {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background-color: #e6f7f0;
+  color: var(--success);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 2px 10px;
+  border-radius: 999px;
+}
+
+.glass-header {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.tab-bar {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.tap-scale {
+  transition: transform 0.15s var(--spring);
+}
+
+.tap-scale:active {
+  transform: scale(0.94);
+}
+
+.mobile-tab-spacing {
+  padding-bottom: 5rem;
+}
+
+@media (min-width: 1024px) {
+  .mobile-tab-spacing {
+    padding-bottom: 0;
+  }
+}
+
+.banner-brilho {
+  position: relative;
+  overflow: hidden;
+}
+
+.banner-brilho::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 30%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+  animation: brilhoBanner 5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.numero-destaque {
+  animation: popNumero 0.5s var(--spring) both;
+}
+
+/* Rolagem sem barra visível, mas continua deslizando com o dedo/mouse */
+.no-scrollbar {
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  scroll-snap-type: x proximity;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar > * {
+  scroll-snap-align: start;
+}
+
+.pill-scroll {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  scroll-snap-type: x proximity;
+}
+
+.pill-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.pill-scroll > * {
+  scroll-snap-align: start;
+}
