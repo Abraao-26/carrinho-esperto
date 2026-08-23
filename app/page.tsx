@@ -322,7 +322,6 @@ export default function Home() {
   return (
     <main className="min-h-screen">
       <div className="px-3 sm:px-6 max-w-6xl mx-auto pt-3">
-        {/* ===== 1. Header: localização + busca + perfil ===== */}
         <div className="flex items-center justify-between mb-3">
           <button className="flex items-center gap-1.5 text-sm font-medium text-gray-700">
             <FontAwesomeIcon icon={faMapMarkerAlt} style={{ color: 'var(--brand)' }} />
@@ -347,7 +346,6 @@ export default function Home() {
         </form>
       </div>
 
-      {/* ===== 2. Banner hero, sem botões sobrepostos ===== */}
       {slide && (
         <div className="w-full px-3 sm:px-6 max-w-6xl mx-auto mb-6">
           <div
@@ -413,7 +411,6 @@ export default function Home() {
       )}
 
       <div className="px-3 sm:px-6 max-w-6xl mx-auto pb-10">
-        {/* ===== 3. Grade de atalhos rápidos ===== */}
         <div className="grid grid-cols-4 gap-2 sm:gap-4 mb-9">
           {ATALHOS_RAPIDOS.map(({ label, icone, href, cor }) => (
             <Link key={label} href={href} className="tap-scale flex flex-col items-center gap-2 text-center">
@@ -428,7 +425,6 @@ export default function Home() {
           ))}
         </div>
 
-        {/* ===== 4. Categorias em bolhas (stories) ===== */}
         <h2 className="font-display font-bold text-lg mb-3">Categorias</h2>
         <div className="no-scrollbar flex gap-4 mb-9">
           {CATEGORIAS_ATALHO.map(({ nome, icone, cor, fundo }) => (
@@ -441,7 +437,6 @@ export default function Home() {
           ))}
         </div>
 
-        {/* ===== 5. Maior queda de preço hoje ===== */}
         {quedasDePreco.length > 0 && (
           <div className="mb-9">
             <h2 className="font-display font-bold text-xl mb-4 flex items-center gap-2">
@@ -450,7 +445,7 @@ export default function Home() {
             </h2>
             <div className="no-scrollbar flex gap-4">
               {quedasDePreco.map((q, i) => (
-                <Link key={i} href={`/produto/${q.product_id}`} className="card p-3 shrink-0" style={{ width: 160 }}>
+                <Link key={i} href={`/produto/${q.product_id}`} className="card p-3 shrink-0 block" style={{ width: 160 }}>
                   <span
                     className="inline-block text-[10px] font-bold px-2 py-1 rounded-full mb-2"
                     style={{ backgroundColor: '#e6f7f0', color: 'var(--success)' }}
@@ -478,7 +473,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* ===== 6. Mercados próximos ===== */}
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-display font-bold text-xl flex items-center gap-2">
             <FontAwesomeIcon icon={faStore} style={{ color: 'var(--brand)' }} />
@@ -510,7 +504,7 @@ export default function Home() {
             const ehMaisProximo = mercado.id === idMercadoMaisProximo;
 
             return (
-              <Link key={mercado.id} href={`/mercado/${mercado.id}`} className="card overflow-hidden p-0">
+              <Link key={mercado.id} href={`/mercado/${mercado.id}`} className="card overflow-hidden p-0 block">
                 <div className="h-24 relative">
                   {mercado.image_url ? (
                     <>
@@ -574,7 +568,6 @@ export default function Home() {
           })}
         </div>
 
-        {/* Minhas listas salvas */}
         {listasSalvas.length > 0 && (
           <div id="minhas-listas" className="mb-9 scroll-mt-24">
             <h2 className="font-display font-bold text-lg mb-3 flex items-center gap-2">
@@ -604,7 +597,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* ===== 7. Rodapé informativo: métricas + dica do dia ===== */}
         <div className="border-t border-gray-100 pt-6 mt-6">
           <div className="no-scrollbar flex gap-3 mb-4">
             <div className="card px-4 py-2.5 flex items-center gap-2 shrink-0">
