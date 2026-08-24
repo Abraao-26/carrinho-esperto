@@ -11,21 +11,31 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ erro: 'Link do QR Code inválido.' }, { status: 400 });
     }
 
-    // Força HTTPS no link caso venha HTTP simples da SEFAZ
-    const targetUrl = url.replace('http://', 'https://');
+    // Utiliza o proxy AllOrigins para contornar o bloqueio de IP da Vercel feito pela SEFAZ
+    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
 
-    const resposta = await fetch(targetUrl, {
+    const resposta = await fetch(proxyUrl, {
       method: 'GET',
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-        'Accept-Language': 'pt-BR,pt;q=0.9',
-        'Cache-Control': 'no-cache',
+        'Accept': 'application/json',
       },
-      redirect: 'follow',
+      cache: 'no-store',
     });
 
-    const html = await resposta.text();
+    if (!resposta.ok) {
+      throw new Error('Falha no proxy');
+    }
+
+    const data = await resposta.json();
+    const html = data.contents;
+
+    if (!html) {
+      return NextResponse.json(
+        { erro: 'A SEFAZ não retornou o conteúdo da página.' },
+        { status: 502 }
+      );
+    }
+
     const $ = cheerio.load(html);
 
     // Extração do nome do estabelecimento
@@ -36,14 +46,10 @@ export async function POST(req: NextRequest) {
 
     const itens: { nome: string; preco: number }[] = [];
 
-    // Mapeamento abrangente de tabelas e listas da SEFAZ
-    $('tr, .linhaItem').each((_, el) => {
+    // Mapeamento de linhas
+    $('#tabResult tr, table tr').each((_, el) => {
+      const nomeMatch = $(el).find('.txtTit, td:nth-child(1)').text().trim();
       const texto = $(el).text().replace(/\s+/g, ' ');
-      
-      // Procura nomes de produtos comuns
-      const nomeMatch = $(el).find('.txtTit, .txtNome, td:nth-child(1)').text().trim();
-      
-      // Procura valores no formato moeda (R$ XX,XX ou XX,XX)
       const valorMatches = texto.match(/(\d{1,3}(\.\d{3})*,\d{2})/g);
 
       if (nomeMatch && valorMatches && valorMatches.length > 0) {
@@ -58,13 +64,16 @@ export async function POST(req: NextRequest) {
 
     if (itens.length === 0) {
       return NextResponse.json(
-        { erro: 'O site da SEFAZ exigiu validação manual (CAPTCHA) ou alterou a estrutura. Recomenda-se integrar uma API de consulta NFC-e.' },
+        { erro: 'Não foi possível ler os itens da nota. O portal da SEFAZ pode ter exibido um CAPTCHA.' },
         { status: 422 }
       );
     }
 
     return NextResponse.json({ mercado, itens });
   } catch (e) {
-    return NextResponse.json({ erro: 'Falha na conexão com os servidores da SEFAZ.' }, { status: 500 });
+    return NextResponse.json(
+      { erro: 'Erro ao conectar com o serviço de consulta da SEFAZ.' },
+      { status: 500 }
+    );
   }
 }
