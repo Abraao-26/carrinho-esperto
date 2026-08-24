@@ -1,7 +1,4 @@
 // app/api/nfce/route.ts
-// Lê a página pública da nota fiscal (NFC-e) e extrai o nome do mercado e os
-// itens comprados. Testado com o layout real usado pela Sefaz-BA (tabela
-// #tabResult, com cada produto em um <tr> e o nome em <span class="txtTit">).
 
 import { NextRequest, NextResponse } from 'next/server';
 import * as cheerio from 'cheerio';
@@ -14,28 +11,54 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ erro: 'Link do QR Code inválido.' }, { status: 400 });
     }
 
-    const resposta = await fetch(url);
+    // Passamos headers de navegador real e configuramos para seguir redirecionamentos (redirect: 'follow')
+    const resposta = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
+      },
+      redirect: 'follow',
+    });
+
     const html = await resposta.text();
     const $ = cheerio.load(html);
 
-    // Nome do mercado: aparece destacado no topo da nota
-    const mercado = $('.txtTopo').first().text().trim() || 'Mercado não identificado';
+    // Nome do mercado: busca por várias classes comuns da SEFAZ
+    const mercado =
+      $('#txtTopo').text().trim() ||
+      $('.txtTopo').first().text().trim() ||
+      $('#comprovante .txtBox .txtTit').first().text().trim() ||
+      'Mercado não identificado';
 
     const itens: { nome: string; preco: number }[] = [];
 
-    // Cada produto é uma linha da tabela #tabResult
-    $('#tabResult tr').each((_, linha) => {
-      // O nome do produto é o primeiro span.txtTit da linha
-      const nome = $(linha).find('.txtTit').first().text().trim();
+    // Busca linhas da tabela tanto no formato tradicional (#tabResult) quanto em estruturas alternativas
+    const linhas = $('#tabResult tr').length > 0 ? $('#tabResult tr') : $('table tr');
 
-      // O preço total fica na última coluna da linha, junto com o texto
-      // "Vl. Total" (ex: "Vl. Total11,99"). Pegamos só o número do final.
-      const textoUltimaColuna = $(linha).find('td').last().text();
-      const match = textoUltimaColuna.match(/([\d.]+,\d{2})\s*$/);
-      const preco = match ? parseFloat(match[1].replace(/\./g, '').replace(',', '.')) : NaN;
+    linhas.each((_, linha) => {
+      // Tenta pegar o nome do produto
+      const nome =
+        $(linha).find('.txtTit').first().text().trim() ||
+        $(linha).find('span[class*="txtTit"]').text().trim();
 
-      if (nome && !isNaN(preco)) {
-        itens.push({ nome, preco });
+      // Captura o texto total da linha/colunas
+      const textoLinha = $(linha).text();
+
+      // Procura por valores monetários no formato brasileiro (ex: 11,99 ou 1.234,56)
+      const matches = textoLinha.match(/(\d{1,3}(\.\d{3})*,\d{2})/g);
+
+      if (nome && matches && matches.length > 0) {
+        // Pega o último valor numérico encontrado na linha (normalmente o Vl. Total)
+        const ultimoValor = matches[matches.length - 1];
+        const preco = parseFloat(ultimoValor.replace(/\./g, '').replace(',', '.'));
+
+        if (!isNaN(preco) && preco > 0) {
+          // Evita duplicatas se a linha for um cabeçalho
+          itens.push({ nome, preco });
+        }
       }
     });
 
