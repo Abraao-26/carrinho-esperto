@@ -11,60 +11,47 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ erro: 'Link do QR Code inválido.' }, { status: 400 });
     }
 
-    // Utiliza o proxy AllOrigins para contornar o bloqueio de IP da Vercel feito pela SEFAZ
-    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-
-    const resposta = await fetch(proxyUrl, {
+    // A SEFAZ-BA exige parâmetros específicos e cabeçalhos idênticos aos de um navegador mobile
+    const response = await fetch(url, {
       method: 'GET',
       headers: {
-        'Accept': 'application/json',
+        'User-Agent':
+          'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'pt-BR,pt;q=0.9',
       },
       cache: 'no-store',
     });
 
-    if (!resposta.ok) {
-      throw new Error('Falha no proxy');
-    }
-
-    const data = await resposta.json();
-    const html = data.contents;
-
-    if (!html) {
-      return NextResponse.json(
-        { erro: 'A SEFAZ não retornou o conteúdo da página.' },
-        { status: 502 }
-      );
-    }
-
+    const html = await response.text();
     const $ = cheerio.load(html);
 
-    // Extração do nome do estabelecimento
-    const mercado = 
-      $('.txtTopo').first().text().trim() || 
+    // Seletores específicos do layout da SEFAZ Bahia
+    const mercado =
       $('#lblRazaoSocial').text().trim() ||
+      $('.txtTopo').first().text().trim() ||
       'Mercado não identificado';
 
     const itens: { nome: string; preco: number }[] = [];
 
-    // Mapeamento de linhas
-    $('#tabResult tr, table tr').each((_, el) => {
-      const nomeMatch = $(el).find('.txtTit, td:nth-child(1)').text().trim();
-      const texto = $(el).text().replace(/\s+/g, ' ');
-      const valorMatches = texto.match(/(\d{1,3}(\.\d{3})*,\d{2})/g);
+    // Iteração pelos itens da tabela
+    $('#tabResult tr, .tblItens tr').each((_, el) => {
+      const nome = $(el).find('.txtTit').text().trim();
+      const valorTxt = $(el).find('.Rvl, .valor, td:last-child').text().trim();
 
-      if (nomeMatch && valorMatches && valorMatches.length > 0) {
-        const precoStr = valorMatches[valorMatches.length - 1];
-        const preco = parseFloat(precoStr.replace(/\./g, '').replace(',', '.'));
+      const match = valorTxt.match(/(\d{1,3}(\.\d{3})*,\d{2})/);
 
-        if (!isNaN(preco) && preco > 0) {
-          itens.push({ nome: nomeMatch, preco });
+      if (nome && match) {
+        const preco = parseFloat(match[1].replace(/\./g, '').replace(',', '.'));
+        if (!isNaN(preco)) {
+          itens.push({ nome, preco });
         }
       }
     });
 
     if (itens.length === 0) {
       return NextResponse.json(
-        { erro: 'Não foi possível ler os itens da nota. O portal da SEFAZ pode ter exibido um CAPTCHA.' },
+        { erro: 'A SEFAZ bloqueou o acesso automático nesta tentativa. Tente novamente em alguns instantes.' },
         { status: 422 }
       );
     }
@@ -72,7 +59,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ mercado, itens });
   } catch (e) {
     return NextResponse.json(
-      { erro: 'Erro ao conectar com o serviço de consulta da SEFAZ.' },
+      { erro: 'Não foi possível carregar os dados do portal da SEFAZ.' },
       { status: 500 }
     );
   }
