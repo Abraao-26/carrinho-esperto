@@ -7,7 +7,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { UserPlus, Loader2, User, Store } from 'lucide-react';
+import { UserPlus, Loader2, User, Store, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/components/Toast';
 import Link from 'next/link';
 
@@ -19,6 +19,7 @@ export default function CriarConta() {
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
+  const [mostrarSenha, setMostrarSenha] = useState(false);
 
   // Campos extras, só usados quando tipo === 'empresa'
   const [nomeMercado, setNomeMercado] = useState('');
@@ -139,13 +140,23 @@ export default function CriarConta() {
             onChange={(e) => setEmail(e.target.value)}
             className="w-full border border-gray-200 rounded-xl px-4 py-3 text-gray-900 placeholder-gray-400 bg-white focus:outline-none focus:ring-2"
           />
-          <input
-            type="password"
-            placeholder="Senha"
-            value={senha}
-            onChange={(e) => setSenha(e.target.value)}
-            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-gray-900 placeholder-gray-400 bg-white focus:outline-none focus:ring-2"
-          />
+          <div className="relative">
+            <input
+              type={mostrarSenha ? 'text' : 'password'}
+              placeholder="Senha"
+              value={senha}
+              onChange={(e) => setSenha(e.target.value)}
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 pr-11 text-gray-900 placeholder-gray-400 bg-white focus:outline-none focus:ring-2"
+            />
+            <button
+              type="button"
+              onClick={() => setMostrarSenha(!mostrarSenha)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              tabIndex={-1}
+            >
+              {mostrarSenha ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
 
           {tipo === 'empresa' && (
             <>

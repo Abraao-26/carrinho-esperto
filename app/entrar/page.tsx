@@ -1,13 +1,14 @@
 // app/entrar/page.tsx
-// Tela de login: e-mail/senha, botões sociais (Google/Apple — visuais, prontos
-// para integração futura) e "Continuar como convidado".
+// Tela de login: e-mail/senha (com botão de mostrar/ocultar senha), login
+// de verdade com Google, botão da Apple ainda "em breve", e "Continuar
+// como convidado".
 
 'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { LogIn, Loader2, ShoppingCart, ArrowRight } from 'lucide-react';
+import { LogIn, Loader2, ShoppingCart, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/components/Toast';
 import Link from 'next/link';
 
@@ -16,7 +17,9 @@ export default function Entrar() {
   const toast = useToast();
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
+  const [mostrarSenha, setMostrarSenha] = useState(false);
   const [carregando, setCarregando] = useState(false);
+  const [carregandoGoogle, setCarregandoGoogle] = useState(false);
 
   async function entrar() {
     if (!email || !senha) {
@@ -28,17 +31,28 @@ export default function Entrar() {
     setCarregando(false);
 
     if (error) {
-      toast.erro('E-mail ou senha incorretos.');
+      toast.erro('E-mail ou senha incorretos: ' + error.message);
     } else {
       toast.sucesso('Login realizado!');
       router.push('/');
     }
   }
 
-  // Os provedores sociais ainda não estão configurados no Supabase — por enquanto
-  // avisamos a pessoa, em vez de simular um login que não é de verdade.
-  function loginSocial(provedor: string) {
-    toast.erro(`Login com ${provedor} em breve — por enquanto, use e-mail e senha.`);
+  async function entrarComGoogle() {
+    setCarregandoGoogle(true);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: `${window.location.origin}/` },
+    });
+    if (error) {
+      setCarregandoGoogle(false);
+      toast.erro('Erro ao entrar com Google: ' + error.message);
+    }
+    // Se não der erro, o navegador é redirecionado para o Google — a página não continua daqui.
+  }
+
+  function loginApple() {
+    toast.erro('Login com Apple em breve — por enquanto, use e-mail e senha ou Google.');
   }
 
   return (
@@ -63,14 +77,24 @@ export default function Entrar() {
             onChange={(e) => setEmail(e.target.value)}
             className="w-full border border-gray-200 rounded-xl px-4 py-3 text-gray-900 placeholder-gray-400 bg-white focus:outline-none focus:ring-2"
           />
-          <input
-            type="password"
-            placeholder="Senha"
-            value={senha}
-            onChange={(e) => setSenha(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && entrar()}
-            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-gray-900 placeholder-gray-400 bg-white focus:outline-none focus:ring-2"
-          />
+          <div className="relative">
+            <input
+              type={mostrarSenha ? 'text' : 'password'}
+              placeholder="Senha"
+              value={senha}
+              onChange={(e) => setSenha(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && entrar()}
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 pr-11 text-gray-900 placeholder-gray-400 bg-white focus:outline-none focus:ring-2"
+            />
+            <button
+              type="button"
+              onClick={() => setMostrarSenha(!mostrarSenha)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              tabIndex={-1}
+            >
+              {mostrarSenha ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
           <button onClick={entrar} disabled={carregando} className="btn-primary tap-scale w-full py-3.5 flex items-center justify-center gap-2">
             {carregando ? <Loader2 size={18} className="animate-spin" /> : <><LogIn size={18} /> Entrar</>}
           </button>
@@ -84,19 +108,26 @@ export default function Entrar() {
 
         <div className="space-y-2.5 mb-5">
           <button
-            onClick={() => loginSocial('Google')}
+            onClick={entrarComGoogle}
+            disabled={carregandoGoogle}
             className="tap-scale w-full flex items-center justify-center gap-3 py-3 rounded-xl border border-gray-200 font-medium text-sm text-gray-700 hover:bg-gray-50"
           >
-            <svg width="18" height="18" viewBox="0 0 18 18">
-              <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84c-.21 1.13-.84 2.09-1.8 2.73v2.27h2.91c1.7-1.57 2.69-3.87 2.69-6.64z"/>
-              <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.91-2.27c-.81.54-1.84.86-3.05.86-2.34 0-4.33-1.58-5.04-3.71H.96v2.33C2.44 15.98 5.48 18 9 18z"/>
-              <path fill="#FBBC05" d="M3.96 10.7c-.18-.54-.28-1.11-.28-1.7s.1-1.16.28-1.7V4.97H.96C.35 6.17 0 7.54 0 9s.35 2.83.96 4.03l3-2.33z"/>
-              <path fill="#EA4335" d="M9 3.58c1.32 0 2.51.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0 5.48 0 2.44 2.02.96 4.97l3 2.33C4.67 5.16 6.66 3.58 9 3.58z"/>
-            </svg>
-            Continuar com Google
+            {carregandoGoogle ? (
+              <Loader2 size={18} className="animate-spin" />
+            ) : (
+              <>
+                <svg width="18" height="18" viewBox="0 0 18 18">
+                  <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84c-.21 1.13-.84 2.09-1.8 2.73v2.27h2.91c1.7-1.57 2.69-3.87 2.69-6.64z"/>
+                  <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.91-2.27c-.81.54-1.84.86-3.05.86-2.34 0-4.33-1.58-5.04-3.71H.96v2.33C2.44 15.98 5.48 18 9 18z"/>
+                  <path fill="#FBBC05" d="M3.96 10.7c-.18-.54-.28-1.11-.28-1.7s.1-1.16.28-1.7V4.97H.96C.35 6.17 0 7.54 0 9s.35 2.83.96 4.03l3-2.33z"/>
+                  <path fill="#EA4335" d="M9 3.58c1.32 0 2.51.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0 5.48 0 2.44 2.02.96 4.97l3 2.33C4.67 5.16 6.66 3.58 9 3.58z"/>
+                </svg>
+                Continuar com Google
+              </>
+            )}
           </button>
           <button
-            onClick={() => loginSocial('Apple')}
+            onClick={loginApple}
             className="tap-scale w-full flex items-center justify-center gap-3 py-3 rounded-xl bg-black text-white font-medium text-sm hover:bg-gray-900"
           >
             <svg width="16" height="16" viewBox="0 0 384 512" fill="white">
