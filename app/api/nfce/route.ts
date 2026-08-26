@@ -1,10 +1,9 @@
 // app/api/nfce/route.ts
+// Lê a nota fiscal usando a ScraperAPI (navegador headless real), que contorna
+// o bloqueio de Cloudflare/WAF que a Sefaz aplica a requisições de servidor.
 
 import { NextRequest, NextResponse } from 'next/server';
 import * as cheerio from 'cheerio';
-
-// Cole aqui a API Key que você pegou no site da ScraperAPI
-const SCRAPER_API_KEY = 'fb5300e3fef13e945f633a745052a6af';
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,12 +13,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ erro: 'Link do QR Code inválido.' }, { status: 400 });
     }
 
-    // Monta a URL de requisição passando o link da SEFAZ para a ScraperAPI
-    const scraperUrl = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(url)}&render=true`;
+    const apiKey = process.env.SCRAPER_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json({ erro: 'Chave da ScraperAPI não configurada no servidor.' }, { status: 500 });
+    }
 
-    const response = await fetch(scraperUrl, {
-      cache: 'no-store',
-    });
+    const scraperUrl = `http://api.scraperapi.com?api_key=${apiKey}&url=${encodeURIComponent(url)}&render=true`;
+
+    const response = await fetch(scraperUrl, { cache: 'no-store' });
 
     if (!response.ok) {
       throw new Error('Falha ao obter dados via ScraperAPI');
@@ -28,7 +29,6 @@ export async function POST(req: NextRequest) {
     const html = await response.text();
     const $ = cheerio.load(html);
 
-    // Captura o nome do mercado
     const mercado =
       $('#lblRazaoSocial').text().trim() ||
       $('.txtTopo').first().text().trim() ||
@@ -36,18 +36,14 @@ export async function POST(req: NextRequest) {
 
     const itens: { nome: string; preco: number }[] = [];
 
-    // Extrai os produtos da tabela
-    $('#tabResult tr, .tblItens tr, table tr').each((_, el) => {
-      const nome = $(el).find('.txtTit, .nome').text().trim();
+    $('#tabResult tr').each((_, el) => {
+      const nome = $(el).find('.txtTit').first().text().trim();
       const textoLinha = $(el).text();
-      
-      // Procura por padrão de valor R$ XX,XX
       const matches = textoLinha.match(/(\d{1,3}(\.\d{3})*,\d{2})/g);
 
       if (nome && matches && matches.length > 0) {
         const ultimoValor = matches[matches.length - 1];
         const preco = parseFloat(ultimoValor.replace(/\./g, '').replace(',', '.'));
-
         if (!isNaN(preco) && preco > 0) {
           itens.push({ nome, preco });
         }
@@ -64,7 +60,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ mercado, itens });
   } catch (e) {
     return NextResponse.json(
-      { erro: 'Erro ao conectar com a SEFAZ através da API de captura.' },
+      { erro: 'Erro ao conectar com a Sefaz através da API de captura.' },
       { status: 500 }
     );
   }
